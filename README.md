@@ -22,9 +22,6 @@ kleiner Webserver erlaubt die Konfiguration ähnlich zu Tasmota.
 ## Abhängigkeiten
 Im Arduino IDE müssen folgende Bibliotheken installiert sein:
 - ESP8266 Board Pakete
-
-
-
 - Adafruit BME280 Library
 
 ## Verwendung
@@ -43,25 +40,18 @@ automatisch mit diesem WLAN zu verbinden; der Konfigurationsmodus wird nur
 gestartet, wenn diese Verbindung fehlschlägt.
 
 ## Node-RED Flow
-1. `http in` Node hinzufügen
-   - Methode: **POST**
-   - URL: `/sensor`
-   - Option „Return the raw body“ aktivieren
-2. Function-Node zum Parsen der 14 Bytes
-   ```javascript
-   const buf = msg.payload;
-   const pm  = buf.readUInt16LE(0);
-   const t   = buf.readFloatLE(2);
-   const h   = buf.readFloatLE(6);
-   const p   = buf.readFloatLE(10);
-   msg.payload = { pm25: pm, temp: t, humidity: h, pressure: p };
-   return msg;
-   ```
-3. `http response` Node anhängen, damit der Client eine Antwort erhält.
-4. Optional weitere Nodes (z. B. Debug oder Dashboard) zum Anzeigen der Werte
-   verbinden.
-=======
-   (WLAN, Node‑RED usw.) eintragen.
-4. Der Controller startet neu und verbindet sich anschließend mit dem
-   konfigurierten WLAN und Node‑RED.
+Ein Beispiel-Flow liegt im Ordner `node-red/ikea_air_monitor_flow.json` und kann
+direkt in Node-RED importiert werden. Er besteht aus folgenden Schritten:
 
+1. Ein `http in` Node nimmt POST-Anfragen unter `/sensor` entgegen und liefert
+   den unveränderten Request-Body.
+2. Ein Function-Node wandelt die 14 Byte in Messwerte um. Liegt der PM2.5-Wert
+   unter einem definierten Schwellenwert (standardmäßig 25 µg/m³), wird die
+   Nachricht verworfen.
+3. Überschreitet der Wert den Schwellenwert, setzt der Node die Felder und Tags
+   (`sensor`, `location`) und gibt die Daten an einen `influxdb out` Node für
+   InfluxDB v2 weiter.
+4. Ein `http response` Node bestätigt den Empfang.
+
+Vor der Nutzung müssen in der `influxdb`-Konfiguration URL, Organisation,
+Bucket und Token angepasst werden.
