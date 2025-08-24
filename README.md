@@ -43,6 +43,7 @@ gestartet, wenn diese Verbindung fehlschlägt.
 Ein Beispiel-Flow liegt im Ordner `node-red/ikea_air_monitor_flow.json` und kann
 direkt in Node-RED importiert werden. Er besteht aus folgenden Schritten:
 
+
 1. Ein `http in` Node nimmt POST-Anfragen unter `/sensor` entgegen und
    übergibt den JSON-Body weiter.
 2. Der Function-Node **format + thresholds** bereitet die Daten für InfluxDB v2
@@ -57,3 +58,4 @@ direkt in Node-RED importiert werden. Er besteht aus folgenden Schritten:
 Vor der Nutzung müssen in der `influxdb`-Konfiguration URL, Organisation,
 Bucket und Token angepasst werden. Die Schwellwerte können direkt im Function
 Node angepasst werden (`thresholds`-Objekt).
+
