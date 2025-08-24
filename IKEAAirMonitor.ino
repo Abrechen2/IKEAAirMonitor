@@ -1,4 +1,5 @@
 #include <ESP8266WiFi.h>
+
 #include "Config.h"
 #include "Sensors.h"
 #include "WebServer.h"
@@ -10,10 +11,12 @@ SoftwareSerial pms(D1, D4); // RX=D1, TX=D4 (unused)
 ESP8266WebServer server(80);
 DNSServer dns;
 bool shouldRestart = false;
+
 unsigned long lastSend = 0;
 
 void setup() {
   Serial.begin(115200);
+
   resetConfig(config);
   if (!loadConfig(config)) {
     startAP();
@@ -44,6 +47,7 @@ void loop() {
   }
   if (shouldRestart) {
     delay(5000);
+
     ESP.restart();
   }
 }
