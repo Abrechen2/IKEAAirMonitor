@@ -1,0 +1,93 @@
+[
+    {
+        "id": "022491e01bac6fab",
+        "type": "tab",
+        "label": "IKEA Air Monitor",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "0f88550a689fb71a",
+        "type": "http in",
+        "z": "022491e01bac6fab",
+        "name": "",
+        "url": "/sensor",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 110,
+        "y": 80,
+        "wires": [
+            [
+                "5bafa13982638749"
+            ]
+        ]
+    },
+    {
+        "id": "5bafa13982638749",
+        "type": "function",
+        "z": "022491e01bac6fab",
+        "name": "format + thresholds",
+        "func": "// Parse binary data from IKEAAirMonitor\nconst buf = msg.payload;\nconst timestamp = Date.now(); // Milliseconds for InfluxDB v2\nconst location = \"Büro\";\nconst device_id = \".223\";\nconst device_type = \"IKEAAirMonitor\";\n\n// Parse the 14-byte binary payload\nconst pm25 = buf.readUInt16LE(0);      // PM2.5 in µg/m³\nconst temperature = buf.readFloatLE(2); // Temperature in °C\nconst humidity = buf.readFloatLE(6);    // Humidity in %\nconst pressure = buf.readFloatLE(10);   // Pressure in hPa\n\nfunction getNumericValue(value, defaultValue = 0) {\n    return (value !== null && value !== undefined && !isNaN(value)) ? Number(value) : defaultValue;\n}\n\nfunction getBoolAsInt(value) {\n    return value ? 1 : 0;\n}\n\n// Calculate simple AQI based on PM2.5 (US EPA standard)\nfunction calculatePM25AQI(pm25) {\n    if (pm25 <= 12.0) return Math.round(pm25 * 50 / 12.0);\n    if (pm25 <= 35.4) return Math.round(51 + (pm25 - 12.1) * 49 / 23.3);\n    if (pm25 <= 55.4) return Math.round(101 + (pm25 - 35.5) * 49 / 19.9);\n    if (pm25 <= 150.4) return Math.round(151 + (pm25 - 55.5) * 49 / 94.9);\n    if (pm25 <= 250.4) return Math.round(201 + (pm25 - 150.5) * 99 / 99.9);\n    return Math.round(301 + (pm25 - 250.5) * 99 / 249.9);\n}\n\n// Calculate dew point using Magnus formula\nfunction calculateDewPoint(temp, humidity) {\n    const a = 17.27;\n    const b = 237.7;\n    const alpha = ((a * temp) / (b + temp)) + Math.log(humidity / 100.0);\n    return (b * alpha) / (a - alpha);\n}\n\n// Calculate comfort index based on temperature and humidity\nfunction calculateComfortIndex(temp, humidity) {\n    // Simple comfort assessment: ideal is 20-24°C and 40-60% humidity\n    let tempScore = 100;\n    let humidityScore = 100;\n\n    if (temp < 18 || temp > 26) tempScore = Math.max(0, 100 - Math.abs(temp - 22) * 10);\n    if (humidity < 30 || humidity > 70) humidityScore = Math.max(0, 100 - Math.abs(humidity - 50) * 2);\n\n    return (tempScore + humidityScore) / 2;\n}\n\nconst thresholds = {\n    aqi_index: 100,\n    pm2_5_ugm3: 35,\n    humidity_low: 30,\n    humidity_high: 70,\n    temperature_low: 18,\n    temperature_high: 26\n};\n\nconst aqi = calculatePM25AQI(pm25);\nconst dewPoint = calculateDewPoint(temperature, humidity);\nconst comfortIndex = calculateComfortIndex(temperature, humidity);\n\nconst influxObject = {\n    measurement: \"air_quality\",\n    tags: {\n        device_id: device_id,\n        location: location,\n        device_type: device_type,\n        data_type: \"environmental\"\n    },\n    fields: {\n        // Environmental data\n        temperature_celsius: getNumericValue(temperature),\n        humidity_percent: getNumericValue(humidity),\n        pressure_hpa: getNumericValue(pressure),\n        dew_point_celsius: getNumericValue(dewPoint),\n\n        // Air quality data\n        pm2_5_ugm3: getNumericValue(pm25),\n        aqi_index: getNumericValue(aqi),\n        aqi_category: aqi <= 50 ? 1 : aqi <= 100 ? 2 : aqi <= 150 ? 3 : aqi <= 200 ? 4 : 5,\n        pm2_5_aqi: getNumericValue(aqi), // Same as overall AQI since we only have PM2.5\n\n        // Comfort metrics\n        comfort_index: getNumericValue(comfortIndex),\n\n        // System metrics\n        sensor_reliable: 1, // Assume reliable if we got data\n        timestamp: timestamp\n    }\n};\n\n// Calculate alerts\nconst alerts = {\n    alert_aqi: aqi > thresholds.aqi_index,\n    alert_pm25: pm25 > thresholds.pm2_5_ugm3,\n    alert_humidity_low: humidity < thresholds.humidity_low,\n    alert_humidity_high: humidity > thresholds.humidity_high,\n    alert_temperature_low: temperature < thresholds.temperature_low,\n    alert_temperature_high: temperature > thresholds.temperature_high\n};\n\n// Add alert fields to influx object\nObject.assign(influxObject.fields, Object.fromEntries(\n    Object.entries(alerts).map(([k, v]) => [k, getBoolAsInt(v)])\n));\n\n// Create readable data object for debugging/other nodes\nconst readableData = {\n    temperature: temperature,\n    humidity: humidity,\n    pressure: pressure,\n    pm25: pm25,\n    aqi: aqi,\n    dewPoint: dewPoint,\n    comfortIndex: comfortIndex,\n    alerts: alerts,\n    timestamp: new Date(timestamp).toISOString()\n};\n\nmsg.payload = [influxObject];\nmsg.readable_data = readableData; // Keep readable data for other nodes\n\nnode.log(`IKEAAirMonitor data - PM2.5: ${pm25}µg/m³, AQI: ${aqi}, T: ${temperature.toFixed(1)}°C, H: ${humidity.toFixed(1)}%, P: ${pressure.toFixed(1)}hPa`);\n\n// Only log alerts if any exist\nconst activeAlerts = Object.entries(alerts).filter(([k, v]) => v).map(([k, v]) => k);\nif (activeAlerts.length > 0) {\n    node.log(`ALERTS: ${activeAlerts.join(', ')}`);\n}\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 330,
+        "y": 80,
+        "wires": [
+            [
+                "754e23f4218751f6",
+                "e7165208701acfb7"
+            ]
+        ]
+    },
+    {
+        "id": "754e23f4218751f6",
+        "type": "influxdb out",
+        "z": "022491e01bac6fab",
+        "influxdb": "influxdb_config",
+        "name": "",
+        "measurement": "",
+        "precision": "",
+        "retentionPolicy": "",
+        "x": 610,
+        "y": 60,
+        "wires": []
+    },
+    {
+        "id": "e7165208701acfb7",
+        "type": "http response",
+        "z": "022491e01bac6fab",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 610,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "influxdb_config",
+        "type": "influxdb",
+        "hostname": "influxdb",
+        "port": "8086",
+        "protocol": "http",
+        "database": "airquality",
+        "name": "InfluxDB",
+        "usetls": false,
+        "tls": "",
+        "influxdbVersion": "2.0",
+        "url": "http://influxdb:8086",
+        "rejectUnauthorized": false
+    },
+    {
+        "id": "86c68369b4508435",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "node-red-contrib-influxdb": "0.7.0"
+        }
+    }
+]
