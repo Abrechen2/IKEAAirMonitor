@@ -26,9 +26,14 @@ inline uint16_t readPM25Raw() {
     if (pms.read() == 0x16) {
       buf[0] = 0x16;
       if (pms.readBytes(buf + 1, FRAME_LEN - 1) == FRAME_LEN - 1) {
-        uint8_t sum = 0;
-        for (int i = 0; i < FRAME_LEN - 1; i++) sum += buf[i];
-        if (sum == buf[FRAME_LEN - 1]) {
+        if (buf[1] != 0x11) {
+          DBG_PRINTLN("PM header mismatch");
+          continue;
+        }
+        uint16_t sum = 0;
+        for (int i = 0; i < FRAME_LEN - 2; i++) sum += buf[i];
+        uint16_t chk = ((uint16_t)buf[FRAME_LEN - 2] << 8) | buf[FRAME_LEN - 1];
+        if (sum == chk) {
           uint16_t val = ((uint16_t)buf[5] << 8) | buf[6];
           DBG_PRINT("PM raw: ");
           DBG_PRINTLN(val);

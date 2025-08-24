@@ -27,12 +27,17 @@
 #define DEFAULT_NODE_PORT 1880
 #endif
 
+#ifndef DEFAULT_SEND_INTERVAL
+#define DEFAULT_SEND_INTERVAL 60000
+#endif
+
 struct DeviceConfig {
   char ssid[32];
   char password[64];
   char hostname[32];
   char nodeHost[64];
   uint16_t nodePort;
+  uint32_t sendInterval;
   float pm25Cal;
 };
 
@@ -43,6 +48,7 @@ inline void resetConfig(DeviceConfig &cfg) {
   strncpy(cfg.password, DEFAULT_WIFI_PASSWORD, sizeof(cfg.password) - 1);
   strncpy(cfg.nodeHost, DEFAULT_NODE_HOST, sizeof(cfg.nodeHost) - 1);
   cfg.nodePort = DEFAULT_NODE_PORT;
+  cfg.sendInterval = DEFAULT_SEND_INTERVAL;
 }
 
 inline bool loadConfig(DeviceConfig &cfg) {
