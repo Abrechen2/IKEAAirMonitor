@@ -11,7 +11,17 @@ extern DeviceConfig config;
 extern bool shouldRestart;
 
 inline String htmlHeader() {
-  return F("<!DOCTYPE html><html><head><meta charset='utf-8'><title>IKEAAirMonitor</title><style>body{font-family:Arial;margin:20px;}input{margin:5px;}label{display:block;margin-top:10px;}nav a{margin-right:10px;}</style></head><body><nav><a href='/'>Status</a><a href='/config'>Konfiguration</a></nav>");
+  return F(
+    "<!DOCTYPE html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>"
+    "<title>IKEAAirMonitor</title><style>"
+    "body{font-family:Arial,sans-serif;margin:20px;background:#f5f5f5;color:#333;}"
+    "nav{margin-bottom:20px;}nav a{margin-right:15px;text-decoration:none;color:#0366d6;}"
+    ".card{background:#fff;padding:20px;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);}"
+    "label{display:block;margin-top:10px;}"
+    "input{width:100%;padding:8px;margin-top:5px;border:1px solid #ccc;border-radius:4px;}"
+    "button{margin-top:15px;padding:10px 15px;background:#0366d6;color:#fff;border:none;border-radius:4px;}"
+    "</style></head><body><nav><a href='/'>Status</a><a href='/config'>Konfiguration</a></nav><div class='card'>"
+  );
 }
 
 inline void handleRoot() {
@@ -23,7 +33,7 @@ inline void handleRoot() {
   html += "<p>Temperatur: " + String(t,1) + " °C</p>";
   html += "<p>Luftfeuchte: " + String(h,1) + " %</p>";
   html += "<p>Luftdruck: " + String(p,1) + " hPa</p>";
-  html += F("</body></html>");
+  html += F("</div></body></html>");
   server.send(200, "text/html", html);
 }
 
@@ -36,8 +46,8 @@ inline void handleConfig() {
   html += "<label>Node-RED Host<input name='nodeHost' value='" + String(config.nodeHost) + "'></label>";
   html += "<label>Node-RED Port<input name='nodePort' value='" + String(config.nodePort) + "'></label>";
   html += "<label>Sendeintervall (s)<input name='sendInterval' value='" + String(config.sendInterval/1000) + "'></label>";
-  html += "<label>PM2.5-Kalibrierung<input name='pm25Cal' value='" + String(config.pm25Cal,1) + "'></label>";
-  html += F("<button type='submit'>Speichern</button></form></body></html>");
+  html += "<label>Temperatur-Offset<input name='tempOffset' value='" + String(config.tempOffset,1) + "'></label>";
+  html += F("<button type='submit'>Speichern</button></form></div></body></html>");
   server.send(200, "text/html", html);
 }
 
@@ -48,7 +58,7 @@ inline void handleSave() {
   if (server.hasArg("nodeHost")) server.arg("nodeHost").toCharArray(config.nodeHost, sizeof(config.nodeHost));
   if (server.hasArg("nodePort")) config.nodePort = server.arg("nodePort").toInt();
   if (server.hasArg("sendInterval")) config.sendInterval = server.arg("sendInterval").toInt() * 1000;
-  if (server.hasArg("pm25Cal")) config.pm25Cal = server.arg("pm25Cal").toFloat();
+  if (server.hasArg("tempOffset")) config.tempOffset = server.arg("tempOffset").toFloat();
   saveConfig(config);
   DBG_PRINTLN("Configuration saved");
 
@@ -66,7 +76,7 @@ inline void handleSave() {
   } else {
     html += "<p>Verbindung fehlgeschlagen.</p>";
   }
-  html += F("<p>Neustart in 5s...</p></body></html>");
+  html += F("<p>Neustart in 5s...</p></div></body></html>");
   server.send(200, "text/html", html);
   shouldRestart = true;
 }

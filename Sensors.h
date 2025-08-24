@@ -133,14 +133,11 @@ inline void readMeasurements(uint16_t &pm25, float &t, float &h, float &p, const
       delay(100); // Wait a bit before next attempt
     }
   }
-  
-  // Apply calibration
-  float pmf = static_cast<float>(rawPM) + cfg.pm25Cal;
-  if (pmf < 0.0f) pmf = 0.0f;
-  pm25 = static_cast<uint16_t>(pmf + 0.5f);
-  
+
+  pm25 = rawPM;
+
   // Read BME280 values
-  t = bme.readTemperature();
+  t = bme.readTemperature() + cfg.tempOffset;
   h = bme.readHumidity();
   p = bme.readPressure() / 100.0F;
 }
