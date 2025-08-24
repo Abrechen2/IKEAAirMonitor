@@ -30,7 +30,9 @@ inline bool loadConfig(DeviceConfig &cfg) {
   return r == sizeof(cfg);
 }
 
+
 inline bool saveConfig(const DeviceConfig &cfg) {
+
   if (!LittleFS.begin()) return false;
   File f = LittleFS.open("/config.bin", "w");
   if (!f) {
