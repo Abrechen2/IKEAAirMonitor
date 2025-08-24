@@ -13,9 +13,11 @@ kleiner Webserver erlaubt die Konfiguration ähnlich zu Tasmota.
 
 - Sendet die Messwerte als rohe Bytes per HTTP-POST an Node‑RED.
 
-- Weboberfläche zur Anzeige der Werte und zur Konfiguration von WLAN,
-  Hostname, Node‑RED-Adresse sowie Kalibrierung.
-- Erster Start im Access-Point-Modus zur einfachen WLAN-Einrichtung.
+ - Weboberfläche zur Anzeige der Werte und zur Konfiguration von WLAN,
+   Hostname, Node‑RED-Adresse sowie Kalibrierung.
+ - Erster Start im Access-Point-Modus zur einfachen WLAN-Einrichtung.
+ - Optional können WLAN-Zugangsdaten im Code hinterlegt werden; der Access-Point
+   startet dann nur, wenn keine Verbindung hergestellt werden konnte.
 
 ## Abhängigkeiten
 Im Arduino IDE müssen folgende Bibliotheken installiert sein:
@@ -33,6 +35,12 @@ Im Arduino IDE müssen folgende Bibliotheken installiert sein:
  (WLAN, Node‑RED usw.) eintragen.
 4. Der Controller startet neu und verbindet sich anschließend mit dem
    konfigurierten WLAN und Node‑RED.
+
+### WLAN-Daten im Code hinterlegen
+In der Datei `Config.h` können `DEFAULT_WIFI_SSID` und
+`DEFAULT_WIFI_PASSWORD` gesetzt werden. Dadurch versucht das Gerät, sich
+automatisch mit diesem WLAN zu verbinden; der Konfigurationsmodus wird nur
+gestartet, wenn diese Verbindung fehlschlägt.
 
 ## Node-RED Flow
 1. `http in` Node hinzufügen

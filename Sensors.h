@@ -11,6 +11,11 @@ inline bool initSensors() {
   Wire.begin(D2, D3); // SDA, SCL
   bool ok = bme.begin(0x76);
   pms.begin(9600);
+  if (ok) {
+    DBG_PRINTLN("BME280 detected");
+  } else {
+    DBG_PRINTLN("BME280 missing");
+  }
   return ok;
 }
 
@@ -24,11 +29,17 @@ inline uint16_t readPM25Raw() {
         uint8_t sum = 0;
         for (int i = 0; i < FRAME_LEN - 1; i++) sum += buf[i];
         if (sum == buf[FRAME_LEN - 1]) {
-          return ((uint16_t)buf[5] << 8) | buf[6];
+          uint16_t val = ((uint16_t)buf[5] << 8) | buf[6];
+          DBG_PRINT("PM raw: ");
+          DBG_PRINTLN(val);
+          return val;
+        } else {
+          DBG_PRINTLN("PM checksum error");
         }
       }
     }
   }
+  DBG_PRINTLN("No PM data");
   return 0;
 }
 
