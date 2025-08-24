@@ -26,7 +26,7 @@ inline bool initSensors() {
 }
 
 inline uint16_t readPM25Raw() {
-  // Exact Tasmota implementation
+  // Exact Tasmota implementation with improved packet handling
   if (!pms.available()) {
     return 0;
   }
@@ -43,6 +43,9 @@ inline uint16_t readPM25Raw() {
 
   uint8_t buffer[VINDRIKTNING_DATASET_SIZE];
   pms.readBytes(buffer, VINDRIKTNING_DATASET_SIZE);
+  
+  // Flush any remaining bytes to prevent packet overlap
+  pms.flush();
 
   // Debug: Print the entire packet
   DBG_PRINT("Vindriktning packet: ");
@@ -62,14 +65,7 @@ inline uint16_t readPM25Raw() {
   if (crc != 0) {
     DBG_PRINT("Vindriktning checksum error, CRC sum: ");
     DBG_PRINTLN(crc);
-    
-    // For debugging: show what the PM2.5 value would be anyway
-    uint16_t pm25_debug = (buffer[5] << 8) | buffer[6];
-    DBG_PRINT("DEBUG PM2.5 value (ignoring checksum): ");
-    DBG_PRINTLN(pm25_debug);
-    
-    // Let's try to return the value anyway for testing
-    return pm25_debug;
+    return 0; // Don't use invalid data
   }
 
   // Extract PM2.5 value from bytes 5-6 (big endian) exactly like Tasmota
