@@ -28,7 +28,7 @@
 #endif
 
 #ifndef DEFAULT_SEND_INTERVAL
-#define DEFAULT_SEND_INTERVAL 60000
+#define DEFAULT_SEND_INTERVAL 10000
 #endif
 
 struct DeviceConfig {
