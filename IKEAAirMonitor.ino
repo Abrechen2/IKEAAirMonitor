@@ -8,7 +8,8 @@
 
 DeviceConfig config;
 Adafruit_BME280 bme;
-SoftwareSerial pms(D1, D4); // RX=D1, TX=D4 (unused)
+// Use D1 for the Vindriktning's RX line; TX remains unused on D8
+SoftwareSerial pms(D1, D8); // RX=D1, TX=D8 (unused)
 ESP8266WebServer server(80);
 DNSServer dns;
 bool shouldRestart = false;

@@ -20,27 +20,25 @@ inline bool initSensors() {
 }
 
 inline uint16_t readPM25Raw() {
-  const uint8_t FRAME_LEN = 20;
-  static uint8_t buf[FRAME_LEN];
-  while (pms.available()) {
-    if (pms.read() == 0x16) {
-      buf[0] = 0x16;
-      if (pms.readBytes(buf + 1, FRAME_LEN - 1) == FRAME_LEN - 1) {
-        if (buf[1] != 0x11) {
-          DBG_PRINTLN("PM header mismatch");
-          continue;
-        }
-        uint16_t sum = 0;
-        for (int i = 0; i < FRAME_LEN - 2; i++) sum += buf[i];
-        uint16_t chk = ((uint16_t)buf[FRAME_LEN - 2] << 8) | buf[FRAME_LEN - 1];
-        if (sum == chk) {
-          uint16_t val = ((uint16_t)buf[5] << 8) | buf[6];
-          DBG_PRINT("PM raw: ");
-          DBG_PRINTLN(val);
-          return val;
-        } else {
-          DBG_PRINTLN("PM checksum error");
-        }
+  static uint8_t b[20];
+  if (pms.available()) {
+    // look for start sequence 0x16 0x11
+    if (pms.read() == 0x16 && pms.peek() == 0x11) {
+      b[0] = 0x16;
+      b[1] = pms.read();
+      for (int i = 2; i < 20; i++) {
+        while (!pms.available()) {}
+        b[i] = pms.read();
+      }
+      uint8_t sum = 0;
+      for (int i = 0; i < 19; i++) sum += b[i];
+      if (sum == b[19]) {
+        uint16_t val = ((uint16_t)b[5] << 8) | b[6];
+        DBG_PRINT("PM raw: ");
+        DBG_PRINTLN(val);
+        return val;
+      } else {
+        DBG_PRINTLN("PM checksum error");
       }
     }
   }
