@@ -47,15 +47,13 @@ direkt in Node-RED importiert werden. Er besteht aus folgenden Schritten:
 1. Ein `http in` Node nimmt POST-Anfragen unter `/sensor` entgegen und
    übergibt den JSON-Body weiter.
 2. Der Function-Node **format + thresholds** bereitet die Daten für InfluxDB v2
-   auf: Er setzt Tags (`device_id`, `location`, `device_type`, `data_type`) und
-   wendet individuelle Schwellwerte auf AQI, CO₂, PM2.5, TVOC sowie
-   Luftfeuchtigkeit an. Werden keine Schwellwerte überschritten, wird die
-   Nachricht verworfen.
-3. Nur Daten oberhalb der Grenzwerte werden an einen `influxdb out` Node
-   weitergeleitet.
+    auf: Er setzt Tags (`device_id`, `location`, `device_type`, `data_type`) und
+    überträgt Messwerte nur bei relevanten Änderungen oder spätestens alle
+    10 Minuten.
+3. Daten, die diese Kriterien nicht erfüllen, werden verworfen.
 4. Ein `http response` Node bestätigt den Empfang.
 
 Vor der Nutzung müssen in der `influxdb`-Konfiguration URL, Organisation,
-Bucket und Token angepasst werden. Die Schwellwerte können direkt im Function
-Node angepasst werden (`thresholds`-Objekt).
+Bucket und Token angepasst werden. Die Übertragungs-Schwellenwerte können
+direkt im Function Node angepasst werden (`thresholds`-Objekt).
 
