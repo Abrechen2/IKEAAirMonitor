@@ -8,7 +8,7 @@ extern Adafruit_BME280 bme;
 extern SoftwareSerial pms;
 
 inline bool initSensors() {
-  Wire.begin(D2, D3); // SDA, SCL
+  Wire.begin(D3, D2); // SDA, SCL
   bool ok = bme.begin(0x76);
   pms.begin(9600);
   if (ok) {
