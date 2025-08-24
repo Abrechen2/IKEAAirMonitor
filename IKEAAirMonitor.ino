@@ -5,7 +5,7 @@
 #include "WebServer.h"
 #include "Sender.h"
 
-Config config;
+DeviceConfig config;
 Adafruit_BME280 bme;
 SoftwareSerial pms(D1, D4); // RX=D1, TX=D4 (unused)
 ESP8266WebServer server(80);

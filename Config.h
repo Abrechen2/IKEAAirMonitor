@@ -2,7 +2,7 @@
 #include <Arduino.h>
 #include <LittleFS.h>
 
-struct Config {
+struct DeviceConfig {
   char ssid[32];
   char password[64];
   char hostname[32];
@@ -11,27 +11,35 @@ struct Config {
   float pm25Cal;
 };
 
-inline void resetConfig(Config &cfg) {
+inline void resetConfig(DeviceConfig &cfg) {
   memset(&cfg, 0, sizeof(cfg));
   cfg.nodePort = 1880;
   cfg.pm25Cal = 0.0f;
 }
 
-inline bool loadConfig(Config &cfg) {
+inline bool loadConfig(DeviceConfig &cfg) {
   if (!LittleFS.begin()) return false;
   File f = LittleFS.open("/config.bin", "r");
-  if (!f) return false;
-  size_t r = f.read((uint8_t*)&cfg, sizeof(cfg));
+  if (!f) {
+    LittleFS.end();
+    return false;
+  }
+  size_t r = f.read(reinterpret_cast<uint8_t*>(&cfg), sizeof(cfg));
   f.close();
+  LittleFS.end();
   return r == sizeof(cfg);
 }
 
-inline bool saveConfig(const Config &cfg) {
-  if (!LittleFS.begin()) LittleFS.begin();
+inline bool saveConfig(const DeviceConfig &cfg) {
+  if (!LittleFS.begin()) return false;
   File f = LittleFS.open("/config.bin", "w");
-  if (!f) return false;
-  size_t w = f.write((const uint8_t*)&cfg, sizeof(cfg));
+  if (!f) {
+    LittleFS.end();
+    return false;
+  }
+  size_t w = f.write(reinterpret_cast<const uint8_t*>(&cfg), sizeof(cfg));
   f.close();
+  LittleFS.end();
   return w == sizeof(cfg);
 }
 
