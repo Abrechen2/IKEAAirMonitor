@@ -1,6 +1,7 @@
 #pragma once
 #include <Arduino.h>
 #include <LittleFS.h>
+#include "secrets.h"
 
 #ifdef DEBUG
 #define DBG_PRINT(x) Serial.print(x)
@@ -18,6 +19,14 @@
 #define DEFAULT_WIFI_PASSWORD ""
 #endif
 
+#ifndef DEFAULT_NODE_HOST
+#define DEFAULT_NODE_HOST ""
+#endif
+
+#ifndef DEFAULT_NODE_PORT
+#define DEFAULT_NODE_PORT 1880
+#endif
+
 struct DeviceConfig {
   char ssid[32];
   char password[64];
@@ -29,10 +38,11 @@ struct DeviceConfig {
 
 inline void resetConfig(DeviceConfig &cfg) {
   memset(&cfg, 0, sizeof(cfg));
-  cfg.nodePort = 1880;
   cfg.pm25Cal = 0.0f;
   strncpy(cfg.ssid, DEFAULT_WIFI_SSID, sizeof(cfg.ssid) - 1);
   strncpy(cfg.password, DEFAULT_WIFI_PASSWORD, sizeof(cfg.password) - 1);
+  strncpy(cfg.nodeHost, DEFAULT_NODE_HOST, sizeof(cfg.nodeHost) - 1);
+  cfg.nodePort = DEFAULT_NODE_PORT;
 }
 
 inline bool loadConfig(DeviceConfig &cfg) {
