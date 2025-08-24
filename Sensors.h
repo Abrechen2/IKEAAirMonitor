@@ -33,7 +33,9 @@ inline uint16_t readPM25Raw() {
 }
 
 inline void readMeasurements(uint16_t &pm25, float &t, float &h, float &p, const Config &cfg) {
-  pm25 = readPM25Raw() + cfg.pm25Cal;
+  float pmf = static_cast<float>(readPM25Raw()) + cfg.pm25Cal;
+  if (pmf < 0.0f) pmf = 0.0f;
+  pm25 = static_cast<uint16_t>(pmf + 0.5f);
   t = bme.readTemperature();
   h = bme.readHumidity();
   p = bme.readPressure() / 100.0F;
