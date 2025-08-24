@@ -1,0 +1,41 @@
+#pragma once
+#include <Wire.h>
+#include <Adafruit_BME280.h>
+#include <SoftwareSerial.h>
+#include "Config.h"
+
+extern Adafruit_BME280 bme;
+extern SoftwareSerial pms;
+
+inline bool initSensors() {
+  Wire.begin(D2, D3); // SDA, SCL
+  bool ok = bme.begin(0x76);
+  pms.begin(9600);
+  return ok;
+}
+
+inline uint16_t readPM25Raw() {
+  const uint8_t FRAME_LEN = 20;
+  static uint8_t buf[FRAME_LEN];
+  while (pms.available()) {
+    if (pms.read() == 0x16) {
+      buf[0] = 0x16;
+      if (pms.readBytes(buf + 1, FRAME_LEN - 1) == FRAME_LEN - 1) {
+        uint8_t sum = 0;
+        for (int i = 0; i < FRAME_LEN - 1; i++) sum += buf[i];
+        if (sum == buf[FRAME_LEN - 1]) {
+          return ((uint16_t)buf[5] << 8) | buf[6];
+        }
+      }
+    }
+  }
+  return 0;
+}
+
+inline void readMeasurements(uint16_t &pm25, float &t, float &h, float &p, const Config &cfg) {
+  pm25 = readPM25Raw() + cfg.pm25Cal;
+  t = bme.readTemperature();
+  h = bme.readHumidity();
+  p = bme.readPressure() / 100.0F;
+}
+
