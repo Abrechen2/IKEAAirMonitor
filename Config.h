@@ -20,18 +20,26 @@ inline void resetConfig(Config &cfg) {
 inline bool loadConfig(Config &cfg) {
   if (!LittleFS.begin()) return false;
   File f = LittleFS.open("/config.bin", "r");
-  if (!f) return false;
-  size_t r = f.read((uint8_t*)&cfg, sizeof(cfg));
+  if (!f) {
+    LittleFS.end();
+    return false;
+  }
+  size_t r = f.read(reinterpret_cast<uint8_t*>(&cfg), sizeof(cfg));
   f.close();
+  LittleFS.end();
   return r == sizeof(cfg);
 }
 
 inline bool saveConfig(const Config &cfg) {
-  if (!LittleFS.begin()) LittleFS.begin();
+  if (!LittleFS.begin()) return false;
   File f = LittleFS.open("/config.bin", "w");
-  if (!f) return false;
-  size_t w = f.write((const uint8_t*)&cfg, sizeof(cfg));
+  if (!f) {
+    LittleFS.end();
+    return false;
+  }
+  size_t w = f.write(reinterpret_cast<const uint8_t*>(&cfg), sizeof(cfg));
   f.close();
+  LittleFS.end();
   return w == sizeof(cfg);
 }
 
