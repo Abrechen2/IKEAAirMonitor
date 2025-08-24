@@ -48,6 +48,7 @@ inline void handleSave() {
   if (server.hasArg("nodePort")) config.nodePort = server.arg("nodePort").toInt();
   if (server.hasArg("pm25Cal")) config.pm25Cal = server.arg("pm25Cal").toFloat();
   saveConfig(config);
+  DBG_PRINTLN("Configuration saved");
 
   WiFi.mode(WIFI_STA);
   WiFi.hostname(config.hostname);
@@ -73,12 +74,14 @@ inline void setupWeb() {
   server.on("/config", handleConfig);
   server.on("/save", HTTP_POST, handleSave);
   server.begin();
+  DBG_PRINTLN("Web server started");
 }
 
 inline void startAP() {
   WiFi.mode(WIFI_AP);
   WiFi.softAP("IKEAAirMonitor-Setup");
   dns.start(53, "*", WiFi.softAPIP());
+  DBG_PRINTLN("Starting setup access point");
   setupWeb();
 }
 

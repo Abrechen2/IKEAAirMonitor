@@ -2,6 +2,22 @@
 #include <Arduino.h>
 #include <LittleFS.h>
 
+#ifdef DEBUG
+#define DBG_PRINT(x) Serial.print(x)
+#define DBG_PRINTLN(x) Serial.println(x)
+#else
+#define DBG_PRINT(x)
+#define DBG_PRINTLN(x)
+#endif
+
+#ifndef DEFAULT_WIFI_SSID
+#define DEFAULT_WIFI_SSID ""
+#endif
+
+#ifndef DEFAULT_WIFI_PASSWORD
+#define DEFAULT_WIFI_PASSWORD ""
+#endif
+
 struct DeviceConfig {
   char ssid[32];
   char password[64];
@@ -15,6 +31,8 @@ inline void resetConfig(DeviceConfig &cfg) {
   memset(&cfg, 0, sizeof(cfg));
   cfg.nodePort = 1880;
   cfg.pm25Cal = 0.0f;
+  strncpy(cfg.ssid, DEFAULT_WIFI_SSID, sizeof(cfg.ssid) - 1);
+  strncpy(cfg.password, DEFAULT_WIFI_PASSWORD, sizeof(cfg.password) - 1);
 }
 
 inline bool loadConfig(DeviceConfig &cfg) {
