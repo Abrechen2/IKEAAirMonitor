@@ -38,12 +38,12 @@ struct DeviceConfig {
   char nodeHost[64];
   uint16_t nodePort;
   uint32_t sendInterval;
-  float pm25Cal;
+  float tempOffset;
 };
 
 inline void resetConfig(DeviceConfig &cfg) {
   memset(&cfg, 0, sizeof(cfg));
-  cfg.pm25Cal = 0.0f;
+  cfg.tempOffset = -2.0f;
   strncpy(cfg.ssid, DEFAULT_WIFI_SSID, sizeof(cfg.ssid) - 1);
   strncpy(cfg.password, DEFAULT_WIFI_PASSWORD, sizeof(cfg.password) - 1);
   strncpy(cfg.nodeHost, DEFAULT_NODE_HOST, sizeof(cfg.nodeHost) - 1);
