@@ -7,7 +7,7 @@
 
 extern ESP8266WebServer server;
 extern DNSServer dns;
-extern Config config;
+extern DeviceConfig config;
 extern bool shouldRestart;
 
 inline String htmlHeader() {
@@ -41,10 +41,10 @@ inline void handleConfig() {
 }
 
 inline void handleSave() {
-  if (server.hasArg("ssid")) strncpy(config.ssid, server.arg("ssid").c_str(), sizeof(config.ssid));
-  if (server.hasArg("password")) strncpy(config.password, server.arg("password").c_str(), sizeof(config.password));
-  if (server.hasArg("hostname")) strncpy(config.hostname, server.arg("hostname").c_str(), sizeof(config.hostname));
-  if (server.hasArg("nodeHost")) strncpy(config.nodeHost, server.arg("nodeHost").c_str(), sizeof(config.nodeHost));
+  if (server.hasArg("ssid")) server.arg("ssid").toCharArray(config.ssid, sizeof(config.ssid));
+  if (server.hasArg("password")) server.arg("password").toCharArray(config.password, sizeof(config.password));
+  if (server.hasArg("hostname")) server.arg("hostname").toCharArray(config.hostname, sizeof(config.hostname));
+  if (server.hasArg("nodeHost")) server.arg("nodeHost").toCharArray(config.nodeHost, sizeof(config.nodeHost));
   if (server.hasArg("nodePort")) config.nodePort = server.arg("nodePort").toInt();
   if (server.hasArg("pm25Cal")) config.pm25Cal = server.arg("pm25Cal").toFloat();
   saveConfig(config);
