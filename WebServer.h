@@ -7,7 +7,7 @@
 
 extern ESP8266WebServer server;
 extern DNSServer dns;
-extern Config config;
+extern DeviceConfig config;
 extern bool shouldRestart;
 
 inline String htmlHeader() {

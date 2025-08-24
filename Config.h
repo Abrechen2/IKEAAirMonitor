@@ -2,7 +2,7 @@
 #include <Arduino.h>
 #include <LittleFS.h>
 
-struct Config {
+struct DeviceConfig {
   char ssid[32];
   char password[64];
   char hostname[32];
@@ -11,13 +11,13 @@ struct Config {
   float pm25Cal;
 };
 
-inline void resetConfig(Config &cfg) {
+inline void resetConfig(DeviceConfig &cfg) {
   memset(&cfg, 0, sizeof(cfg));
   cfg.nodePort = 1880;
   cfg.pm25Cal = 0.0f;
 }
 
-inline bool loadConfig(Config &cfg) {
+inline bool loadConfig(DeviceConfig &cfg) {
   if (!LittleFS.begin()) return false;
   File f = LittleFS.open("/config.bin", "r");
   if (!f) {
@@ -30,7 +30,9 @@ inline bool loadConfig(Config &cfg) {
   return r == sizeof(cfg);
 }
 
-inline bool saveConfig(const Config &cfg) {
+
+inline bool saveConfig(const DeviceConfig &cfg) {
+
   if (!LittleFS.begin()) return false;
   File f = LittleFS.open("/config.bin", "w");
   if (!f) {

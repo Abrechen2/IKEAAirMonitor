@@ -32,7 +32,8 @@ inline uint16_t readPM25Raw() {
   return 0;
 }
 
-inline void readMeasurements(uint16_t &pm25, float &t, float &h, float &p, const Config &cfg) {
+inline void readMeasurements(uint16_t &pm25, float &t, float &h, float &p, const DeviceConfig &cfg) {
+
   float pmf = static_cast<float>(readPM25Raw()) + cfg.pm25Cal;
   if (pmf < 0.0f) pmf = 0.0f;
   pm25 = static_cast<uint16_t>(pmf + 0.5f);

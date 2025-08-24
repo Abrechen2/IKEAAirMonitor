@@ -2,7 +2,7 @@
 #include <ESP8266HTTPClient.h>
 #include "Config.h"
 
-inline void sendToNodeRed(uint16_t pm, float t, float h, float p, const Config &cfg) {
+inline void sendToNodeRed(uint16_t pm, float t, float h, float p, const DeviceConfig &cfg) {
   WiFiClient client;
   HTTPClient http;
   String url = String("http://") + cfg.nodeHost + ":" + cfg.nodePort + "/sensor";
