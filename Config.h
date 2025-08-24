@@ -4,11 +4,11 @@
 #include "secrets.h"
 
 #ifdef DEBUG
-#define DBG_PRINT(x) Serial.print(x)
-#define DBG_PRINTLN(x) Serial.println(x)
+#define DBG_PRINT(...) Serial.print(__VA_ARGS__)
+#define DBG_PRINTLN(...) Serial.println(__VA_ARGS__)
 #else
-#define DBG_PRINT(x)
-#define DBG_PRINTLN(x)
+#define DBG_PRINT(...)
+#define DBG_PRINTLN(...)
 #endif
 
 #ifndef DEFAULT_WIFI_SSID
@@ -78,4 +78,3 @@ inline bool saveConfig(const DeviceConfig &cfg) {
   LittleFS.end();
   return w == sizeof(cfg);
 }
-

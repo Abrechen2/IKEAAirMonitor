@@ -1,5 +1,6 @@
 #define DEBUG
 #include <ESP8266WiFi.h>
+#include <ESP8266HTTPClient.h>
 
 #include "Config.h"
 #include "Sensors.h"
@@ -8,7 +9,7 @@
 
 DeviceConfig config;
 Adafruit_BME280 bme;
-// Use D1 for the Vindriktning's RX line; TX remains unused on D8
+// Use D1 for the Vindriktning's TX line (Vindriktning TX -> D1 RX)
 SoftwareSerial pms(D1, D8); // RX=D1, TX=D8 (unused)
 ESP8266WebServer server(80);
 DNSServer dns;
@@ -74,28 +75,42 @@ void setup() {
   } else {
     DBG_PRINTLN("Failed to init sensors");
   }
+  
+  // Give Vindriktning time to start sending data
+  DBG_PRINTLN("Waiting for Vindriktning to send data...");
+  delay(2000);
 }
 
 void loop() {
   handleWeb();
+  
   if (WiFi.status() == WL_CONNECTED && millis() - lastSend > config.sendInterval) {
     uint16_t pm; float t, h, p;
+    
+    DBG_PRINTLN("Reading measurements...");
     readMeasurements(pm, t, h, p, config);
+    
     DBG_PRINT("Measurements - PM2.5: ");
     DBG_PRINT(pm);
-    DBG_PRINT(", T: ");
+    DBG_PRINT(" µg/m³, T: ");
     DBG_PRINT(t);
-    DBG_PRINT(", H: ");
+    DBG_PRINT("°C, H: ");
     DBG_PRINT(h);
-    DBG_PRINT(", P: ");
-    DBG_PRINTLN(p);
-    sendToNodeRed(pm, t, h, p, config);
+    DBG_PRINT("%, P: ");
+    DBG_PRINT(p);
+    DBG_PRINTLN(" hPa");
+    
+    if (pm > 0 || t > -40) { // Only send if we have valid data
+      sendToNodeRed(pm, t, h, p, config);
+    } else {
+      DBG_PRINTLN("No valid sensor data, skipping send");
+    }
+    
     lastSend = millis();
   }
+  
   if (shouldRestart) {
     delay(5000);
-
     ESP.restart();
   }
 }
-
