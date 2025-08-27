@@ -27,6 +27,10 @@
 #define DEFAULT_NODE_PORT 1880
 #endif
 
+#ifndef DEFAULT_NODE_PATH
+#define DEFAULT_NODE_PATH "/sensor"
+#endif
+
 #ifndef DEFAULT_SEND_INTERVAL
 #define DEFAULT_SEND_INTERVAL 10000
 #endif
