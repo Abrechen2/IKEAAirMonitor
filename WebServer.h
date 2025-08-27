@@ -58,9 +58,14 @@ inline void handleSave() {
   if (server.hasArg("hostname")) server.arg("hostname").toCharArray(config.hostname, sizeof(config.hostname));
   if (server.hasArg("nodeHost")) server.arg("nodeHost").toCharArray(config.nodeHost, sizeof(config.nodeHost));
   if (server.hasArg("nodePort")) config.nodePort = server.arg("nodePort").toInt();
-  if (server.hasArg("nodePath")) server.arg("nodePath").toCharArray(config.nodePath, sizeof(config.nodePath));
+  if (server.hasArg("nodePath")) {
+    String path = server.arg("nodePath");
+    if (!path.startsWith("/")) path = "/" + path;
+    path.toCharArray(config.nodePath, sizeof(config.nodePath));
+  }
   if (server.hasArg("sendInterval")) config.sendInterval = server.arg("sendInterval").toInt() * 1000;
   if (server.hasArg("tempOffset")) config.tempOffset = server.arg("tempOffset").toFloat();
+  ensureNodePath(config);
   saveConfig(config);
   DBG_PRINTLN("Configuration saved");
 
