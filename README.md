@@ -13,8 +13,8 @@ kleiner Webserver erlaubt die Konfiguration ähnlich zu Tasmota.
 
 - Sendet die Messwerte als JSON per HTTP-POST an Node‑RED.
 
- - Weboberfläche zur Anzeige der Werte und zur Konfiguration von WLAN,
-   Hostname, Node‑RED-Adresse sowie Kalibrierung.
+- Weboberfläche zur Anzeige der Werte und zur Konfiguration von WLAN,
+   Hostname, Node‑RED-Adresse, -Pfad sowie Kalibrierung.
  - Erster Start im Access-Point-Modus zur einfachen WLAN-Einrichtung.
  - Optional können WLAN-Zugangsdaten im Code hinterlegt werden; der Access-Point
    startet dann nur, wenn keine Verbindung hergestellt werden konnte.
@@ -37,8 +37,9 @@ Im Arduino IDE müssen folgende Bibliotheken installiert sein:
 In der Datei `secrets.h` (siehe `secretstemplate.h`) können `DEFAULT_WIFI_SSID`,
 `DEFAULT_WIFI_PASSWORD`, `DEFAULT_NODE_HOST`, `DEFAULT_NODE_PORT` sowie
 `DEFAULT_NODE_PATH` gesetzt werden. Dadurch versucht das Gerät, sich automatisch
-mit diesem WLAN und dem Node‑RED Server zu verbinden; der Konfigurationsmodus
-wird nur gestartet, wenn diese Verbindung fehlschlägt.
+mit diesem WLAN und dem Node‑RED Server zu verbinden; der Pfad kann später auch
+über die Weboberfläche angepasst werden. Der Konfigurationsmodus wird nur
+gestartet, wenn diese Verbindung fehlschlägt.
 
 ## Node-RED Flow
 Ein Beispiel-Flow liegt im Ordner `node-red/ikea_air_monitor_flow.json` und kann
