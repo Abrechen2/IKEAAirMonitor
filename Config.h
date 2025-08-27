@@ -46,6 +46,13 @@ struct DeviceConfig {
   float tempOffset;
 };
 
+inline void ensureNodePath(DeviceConfig &cfg) {
+  if (cfg.nodePath[0] != '/') {
+    String path = String('/') + cfg.nodePath;
+    path.toCharArray(cfg.nodePath, sizeof(cfg.nodePath));
+  }
+}
+
 inline void resetConfig(DeviceConfig &cfg) {
   memset(&cfg, 0, sizeof(cfg));
   cfg.tempOffset = -2.0f;
@@ -54,6 +61,7 @@ inline void resetConfig(DeviceConfig &cfg) {
   strncpy(cfg.nodeHost, DEFAULT_NODE_HOST, sizeof(cfg.nodeHost) - 1);
   cfg.nodePort = DEFAULT_NODE_PORT;
   strncpy(cfg.nodePath, DEFAULT_NODE_PATH, sizeof(cfg.nodePath) - 1);
+  ensureNodePath(cfg);
   cfg.sendInterval = DEFAULT_SEND_INTERVAL;
 }
 
@@ -67,12 +75,15 @@ inline bool loadConfig(DeviceConfig &cfg) {
   size_t r = f.read(reinterpret_cast<uint8_t*>(&cfg), sizeof(cfg));
   f.close();
   LittleFS.end();
-  return r == sizeof(cfg);
+  if (r == sizeof(cfg)) {
+    ensureNodePath(cfg);
+    return true;
+  }
+  return false;
 }
 
-
-inline bool saveConfig(const DeviceConfig &cfg) {
-
+inline bool saveConfig(DeviceConfig &cfg) {
+  ensureNodePath(cfg);
   if (!LittleFS.begin()) return false;
   File f = LittleFS.open("/config.bin", "w");
   if (!f) {

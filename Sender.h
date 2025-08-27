@@ -5,7 +5,8 @@
 inline void sendToNodeRed(uint16_t pm, float t, float h, float p, const DeviceConfig &cfg) {
   WiFiClient client;
   HTTPClient http;
-  String url = String("http://") + cfg.nodeHost + ":" + cfg.nodePort + cfg.nodePath;
+  String path = cfg.nodePath[0] == '/' ? cfg.nodePath : String('/') + cfg.nodePath;
+  String url = String("http://") + cfg.nodeHost + ":" + cfg.nodePort + path;
   if (http.begin(client, url)) {
     http.addHeader("Content-Type", "application/octet-stream");
     uint8_t payload[14];
