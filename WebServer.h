@@ -45,6 +45,7 @@ inline void handleConfig() {
   html += "<label>Hostname<input name='hostname' value='" + String(config.hostname) + "'></label>";
   html += "<label>Node-RED Host<input name='nodeHost' value='" + String(config.nodeHost) + "'></label>";
   html += "<label>Node-RED Port<input name='nodePort' value='" + String(config.nodePort) + "'></label>";
+  html += "<label>Node-RED Pfad<input name='nodePath' value='" + String(config.nodePath) + "'></label>";
   html += "<label>Sendeintervall (s)<input name='sendInterval' value='" + String(config.sendInterval/1000) + "'></label>";
   html += "<label>Temperatur-Offset<input name='tempOffset' value='" + String(config.tempOffset,1) + "'></label>";
   html += F("<button type='submit'>Speichern</button></form></div></body></html>");
@@ -57,6 +58,7 @@ inline void handleSave() {
   if (server.hasArg("hostname")) server.arg("hostname").toCharArray(config.hostname, sizeof(config.hostname));
   if (server.hasArg("nodeHost")) server.arg("nodeHost").toCharArray(config.nodeHost, sizeof(config.nodeHost));
   if (server.hasArg("nodePort")) config.nodePort = server.arg("nodePort").toInt();
+  if (server.hasArg("nodePath")) server.arg("nodePath").toCharArray(config.nodePath, sizeof(config.nodePath));
   if (server.hasArg("sendInterval")) config.sendInterval = server.arg("sendInterval").toInt() * 1000;
   if (server.hasArg("tempOffset")) config.tempOffset = server.arg("tempOffset").toFloat();
   saveConfig(config);

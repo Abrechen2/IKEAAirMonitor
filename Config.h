@@ -27,6 +27,10 @@
 #define DEFAULT_NODE_PORT 1880
 #endif
 
+#ifndef DEFAULT_NODE_PATH
+#define DEFAULT_NODE_PATH "/sensor"
+#endif
+
 #ifndef DEFAULT_SEND_INTERVAL
 #define DEFAULT_SEND_INTERVAL 10000
 #endif
@@ -37,6 +41,7 @@ struct DeviceConfig {
   char hostname[32];
   char nodeHost[64];
   uint16_t nodePort;
+  char nodePath[32];
   uint32_t sendInterval;
   float tempOffset;
 };
@@ -48,6 +53,7 @@ inline void resetConfig(DeviceConfig &cfg) {
   strncpy(cfg.password, DEFAULT_WIFI_PASSWORD, sizeof(cfg.password) - 1);
   strncpy(cfg.nodeHost, DEFAULT_NODE_HOST, sizeof(cfg.nodeHost) - 1);
   cfg.nodePort = DEFAULT_NODE_PORT;
+  strncpy(cfg.nodePath, DEFAULT_NODE_PATH, sizeof(cfg.nodePath) - 1);
   cfg.sendInterval = DEFAULT_SEND_INTERVAL;
 }
 
