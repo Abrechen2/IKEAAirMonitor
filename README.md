@@ -35,8 +35,8 @@ Im Arduino IDE müssen folgende Bibliotheken installiert sein:
 
 ### WLAN- und Node-RED-Daten im Code hinterlegen
 In der Datei `secrets.h` (siehe `secretstemplate.h`) können `DEFAULT_WIFI_SSID`,
-`DEFAULT_WIFI_PASSWORD`, `DEFAULT_NODE_HOST`, `DEFAULT_NODE_PORT` sowie
-`DEFAULT_NODE_PATH` gesetzt werden. Dadurch versucht das Gerät, sich automatisch
+`DEFAULT_WIFI_PASSWORD`, `DEFAULT_HOSTNAME`, `DEFAULT_NODE_HOST`,
+`DEFAULT_NODE_PORT` sowie `DEFAULT_NODE_PATH` gesetzt werden. Dadurch versucht das Gerät, sich automatisch
 mit diesem WLAN und dem Node‑RED Server zu verbinden; der Pfad kann später auch
 über die Weboberfläche angepasst werden. Der Konfigurationsmodus wird nur
 gestartet, wenn diese Verbindung fehlschlägt.

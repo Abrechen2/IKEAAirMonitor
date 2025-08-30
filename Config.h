@@ -19,6 +19,10 @@
 #define DEFAULT_WIFI_PASSWORD ""
 #endif
 
+#ifndef DEFAULT_HOSTNAME
+#define DEFAULT_HOSTNAME ""
+#endif
+
 #ifndef DEFAULT_NODE_HOST
 #define DEFAULT_NODE_HOST ""
 #endif
@@ -58,6 +62,7 @@ inline void resetConfig(DeviceConfig &cfg) {
   cfg.tempOffset = -2.0f;
   strncpy(cfg.ssid, DEFAULT_WIFI_SSID, sizeof(cfg.ssid) - 1);
   strncpy(cfg.password, DEFAULT_WIFI_PASSWORD, sizeof(cfg.password) - 1);
+  strncpy(cfg.hostname, DEFAULT_HOSTNAME, sizeof(cfg.hostname) - 1);
   strncpy(cfg.nodeHost, DEFAULT_NODE_HOST, sizeof(cfg.nodeHost) - 1);
   cfg.nodePort = DEFAULT_NODE_PORT;
   strncpy(cfg.nodePath, DEFAULT_NODE_PATH, sizeof(cfg.nodePath) - 1);
