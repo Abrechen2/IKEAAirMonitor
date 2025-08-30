@@ -2,6 +2,7 @@
 #include <ESP8266WebServer.h>
 #include <DNSServer.h>
 #include <ESP8266WiFi.h>
+#include <stdio.h>
 #include "Config.h"
 #include "Sensors.h"
 
@@ -9,6 +10,7 @@ extern ESP8266WebServer server;
 extern DNSServer dns;
 extern DeviceConfig config;
 extern bool shouldRestart;
+extern unsigned long long uptimeMillis;
 
 inline String htmlHeader() {
   return F(
@@ -24,6 +26,19 @@ inline String htmlHeader() {
   );
 }
 
+inline String formatUptime(unsigned long long ms) {
+  unsigned long seconds = ms / 1000;
+  unsigned long days = seconds / 86400;
+  seconds %= 86400;
+  unsigned long hours = seconds / 3600;
+  seconds %= 3600;
+  unsigned long minutes = seconds / 60;
+  seconds %= 60;
+  char buf[32];
+  snprintf(buf, sizeof(buf), "%lu d %02lu:%02lu:%02lu", days, hours, minutes, seconds);
+  return String(buf);
+}
+
 inline void handleRoot() {
   uint16_t pm; float t, h, p;
   readMeasurements(pm, t, h, p, config);
@@ -33,6 +48,7 @@ inline void handleRoot() {
   html += "<p>Temperatur: " + String(t,1) + " °C</p>";
   html += "<p>Luftfeuchte: " + String(h,1) + " %</p>";
   html += "<p>Luftdruck: " + String(p,1) + " hPa</p>";
+  html += "<p>Uptime: " + formatUptime(uptimeMillis) + "</p>";
   html += F("</div></body></html>");
   server.send(200, "text/html", html);
 }

@@ -16,6 +16,8 @@ DNSServer dns;
 bool shouldRestart = false;
 
 unsigned long lastSend = 0;
+unsigned long lastMillis = 0;
+unsigned long long uptimeMillis = 0;
 
 void setup() {
   Serial.begin(115200);
@@ -79,9 +81,14 @@ void setup() {
   // Give Vindriktning time to start sending data
   DBG_PRINTLN("Waiting for Vindriktning to send data...");
   delay(2000);
+  lastMillis = millis();
 }
 
 void loop() {
+  unsigned long now = millis();
+  uptimeMillis += (unsigned long)(now - lastMillis);
+  lastMillis = now;
+
   handleWeb();
   
   if (WiFi.status() == WL_CONNECTED && millis() - lastSend > config.sendInterval) {
@@ -101,7 +108,7 @@ void loop() {
     DBG_PRINTLN(" hPa");
     
     if (pm > 0 || t > -40) { // Only send if we have valid data
-      sendToNodeRed(pm, t, h, p, config);
+      sendToNodeRed(pm, t, h, p, uptimeMillis / 1000, config);
     } else {
       DBG_PRINTLN("No valid sensor data, skipping send");
     }
