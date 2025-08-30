@@ -39,7 +39,9 @@ In der Datei `secrets.h` (siehe `secretstemplate.h`) können `DEFAULT_WIFI_SSID`
 `DEFAULT_NODE_PORT` sowie `DEFAULT_NODE_PATH` gesetzt werden. Dadurch versucht das Gerät, sich automatisch
 mit diesem WLAN und dem Node‑RED Server zu verbinden; der Pfad kann später auch
 über die Weboberfläche angepasst werden. Der Konfigurationsmodus wird nur
-gestartet, wenn diese Verbindung fehlschlägt.
+gestartet, wenn diese Verbindung fehlschlägt. Änderungen an diesen
+Voreinstellungen werden beim nächsten Start automatisch in die gespeicherte
+Konfiguration übernommen.
 
 ## Node-RED Flow
 Ein Beispiel-Flow liegt im Ordner `node-red/ikea_air_monitor_flow.json` und kann

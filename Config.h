@@ -48,7 +48,26 @@ struct DeviceConfig {
   char nodePath[32];
   uint32_t sendInterval;
   float tempOffset;
+  uint32_t defaultsHash;
 };
+
+inline uint32_t hashStr(const char *s, uint32_t h = 2166136261UL) {
+  while (*s) {
+    h = (h ^ static_cast<uint8_t>(*s++)) * 16777619UL;
+  }
+  return h;
+}
+
+inline uint32_t calcDefaultsHash() {
+  uint32_t h = 2166136261UL;
+  h = hashStr(DEFAULT_WIFI_SSID, h);
+  h = hashStr(DEFAULT_WIFI_PASSWORD, h);
+  h = hashStr(DEFAULT_HOSTNAME, h);
+  h = hashStr(DEFAULT_NODE_HOST, h);
+  h = hashStr(DEFAULT_NODE_PATH, h);
+  h = (h ^ DEFAULT_NODE_PORT) * 16777619UL;
+  return h;
+}
 
 inline void ensureNodePath(DeviceConfig &cfg) {
   if (cfg.nodePath[0] != '/') {
@@ -68,6 +87,7 @@ inline void resetConfig(DeviceConfig &cfg) {
   strncpy(cfg.nodePath, DEFAULT_NODE_PATH, sizeof(cfg.nodePath) - 1);
   ensureNodePath(cfg);
   cfg.sendInterval = DEFAULT_SEND_INTERVAL;
+  cfg.defaultsHash = calcDefaultsHash();
 }
 
 inline bool loadConfig(DeviceConfig &cfg) {
@@ -80,15 +100,17 @@ inline bool loadConfig(DeviceConfig &cfg) {
   size_t r = f.read(reinterpret_cast<uint8_t*>(&cfg), sizeof(cfg));
   f.close();
   LittleFS.end();
-  if (r == sizeof(cfg)) {
+  if (r == sizeof(cfg) && cfg.defaultsHash == calcDefaultsHash()) {
     ensureNodePath(cfg);
     return true;
   }
+  resetConfig(cfg);
   return false;
 }
 
 inline bool saveConfig(DeviceConfig &cfg) {
   ensureNodePath(cfg);
+  cfg.defaultsHash = calcDefaultsHash();
   if (!LittleFS.begin()) return false;
   File f = LittleFS.open("/config.bin", "w");
   if (!f) {

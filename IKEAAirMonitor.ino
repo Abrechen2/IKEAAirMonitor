@@ -29,6 +29,7 @@ void setup() {
     DBG_PRINTLN("Config loaded from flash");
   } else {
     DBG_PRINTLN("Using default config");
+    saveConfig(config);
   }
 
   if (config.ssid[0] != '\0') {
