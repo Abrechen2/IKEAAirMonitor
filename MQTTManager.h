@@ -61,14 +61,17 @@ inline void initMQTTTopics() {
 
 // Create device info JSON string
 inline void createDeviceInfo(char* buffer, size_t len) {
+  // Use hostname from config, fallback to default if empty
+  const char* deviceName = (config.hostname[0] != '\0') ? config.hostname : "IKEA Air Monitor";
   snprintf(buffer, len,
     "{"
     "\"identifiers\":[\"ikea_air_monitor_%s\"],"
-    "\"name\":\"IKEA Air Monitor\","
+    "\"name\":\"%s\","
     "\"model\":\"IKEA Air Monitor\","
     "\"manufacturer\":\"DIY\""
     "}",
-    deviceUniqueId
+    deviceUniqueId,
+    deviceName
   );
 }
 
