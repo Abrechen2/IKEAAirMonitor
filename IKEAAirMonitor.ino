@@ -1,11 +1,12 @@
-#define DEBUG
 #include <ESP8266WiFi.h>
-#include <ESP8266HTTPClient.h>
+#include <PubSubClient.h>
+#include <ArduinoOTA.h>
 
 #include "Config.h"
 #include "Sensors.h"
 #include "WebServer.h"
-#include "Sender.h"
+#include "MQTTManager.h"
+#include "Calculations.h"
 
 DeviceConfig config;
 Adafruit_BME280 bme;
@@ -14,10 +15,35 @@ SoftwareSerial pms(D1, D8); // RX=D1, TX=D8 (unused)
 ESP8266WebServer server(80);
 DNSServer dns;
 bool shouldRestart = false;
+WiFiClient wifiClient;
+PubSubClient mqttClient(wifiClient);
+bool mqttConnected = false;
 
 unsigned long lastSend = 0;
 unsigned long lastMillis = 0;
-unsigned long long uptimeMillis = 0;
+unsigned long uptimeMillis = 0;
+
+// MQTT state variables (moved from MQTTManager.h to avoid ODR violations)
+unsigned long lastMQTTReconnect = 0;
+const unsigned long MQTT_RECONNECT_INTERVAL = 5000;
+bool discoveryPublished = false;
+bool pendingDataSend = false;
+bool firstDataSent = false;
+uint16_t lastPM25 = 0;
+float lastTemp = 0;
+float lastHumidity = 0;
+float lastPressure = 0;
+uint16_t lastAQI = 0;
+uint8_t lastAQICategory = 0;
+float lastDewPoint = 0;
+float lastComfortIndex = 0;
+uint32_t lastUptime = 0;
+
+// MQTT topic variables
+char deviceUniqueId[32] = "";
+char baseTopic[96] = "";
+char discoveryPrefix[96] = "";
+bool mqttTopicsInitialized = false;
 
 void setup() {
   Serial.begin(115200);
@@ -47,23 +73,39 @@ void setup() {
     if (WiFi.status() == WL_CONNECTED) {
       DBG_PRINT("Connected, IP: ");
       DBG_PRINTLN(WiFi.localIP());
-      if (config.nodeHost[0] != '\0') {
-        WiFiClient client;
-        HTTPClient http;
-        String url = String("http://") + config.nodeHost + ":" + config.nodePort + "/";
-        bool ok = false;
-        if (http.begin(client, url)) {
-          int code = http.GET();
-          http.end();
-          ok = code > 0;
-        }
-        if (ok) {
-          DBG_PRINTLN("Node-RED reachable");
-        } else {
-          DBG_PRINTLN("Node-RED not reachable");
-        }
-      }
       setupWeb();
+      initMQTT();
+      
+      // Setup OTA
+      ArduinoOTA.setHostname(config.hostname);
+      ArduinoOTA.setPassword(DEFAULT_OTA_PASSWORD);
+      
+      ArduinoOTA.onStart([]() {
+        DBG_PRINTLN("OTA Start");
+      });
+      ArduinoOTA.onEnd([]() {
+        DBG_PRINTLN("\nOTA End");
+      });
+      ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+        DBG_PRINTF("Progress: %u%%\r", (progress / (total / 100)));
+      });
+      ArduinoOTA.onError([](ota_error_t error) {
+        DBG_PRINTF("Error[%u]: ", error);
+        if (error == OTA_AUTH_ERROR) {
+          DBG_PRINTLN("Auth Failed");
+        } else if (error == OTA_BEGIN_ERROR) {
+          DBG_PRINTLN("Begin Failed");
+        } else if (error == OTA_CONNECT_ERROR) {
+          DBG_PRINTLN("Connect Failed");
+        } else if (error == OTA_RECEIVE_ERROR) {
+          DBG_PRINTLN("Receive Failed");
+        } else if (error == OTA_END_ERROR) {
+          DBG_PRINTLN("End Failed");
+        }
+      });
+      
+      ArduinoOTA.begin();
+      DBG_PRINTLN("OTA ready");
     } else {
       DBG_PRINTLN("WiFi not reachable, starting AP");
       startAP();
@@ -91,6 +133,12 @@ void loop() {
   lastMillis = now;
 
   handleWeb();
+  loopMQTT();
+  
+  // Handle OTA updates (only when WiFi is connected)
+  if (WiFi.status() == WL_CONNECTED) {
+    ArduinoOTA.handle();
+  }
   
   if (WiFi.status() == WL_CONNECTED && millis() - lastSend > config.sendInterval) {
     uint16_t pm; float t, h, p;
@@ -109,7 +157,24 @@ void loop() {
     DBG_PRINTLN(" hPa");
     
     if (pm > 0 || t > -40) { // Only send if we have valid data
-      sendToNodeRed(pm, t, h, p, uptimeMillis / 1000, config);
+      // Calculate derived values
+      uint16_t aqi = calculatePM25AQI(pm);
+      uint8_t aqiCategory = getAQICategory(aqi);
+      float dewPoint = calculateDewPoint(t, h);
+      float comfortIndex = calculateComfortIndex(t, h);
+      uint32_t uptime = uptimeMillis / 1000;
+      
+      DBG_PRINT("Calculated - AQI: ");
+      DBG_PRINT(aqi);
+      DBG_PRINT(", Category: ");
+      DBG_PRINT(aqiCategory);
+      DBG_PRINT(", Dew Point: ");
+      DBG_PRINT(dewPoint, 1);
+      DBG_PRINT("°C, Comfort: ");
+      DBG_PRINT(comfortIndex, 1);
+      DBG_PRINTLN();
+      
+      publishSensorData(pm, t, h, p, aqi, aqiCategory, dewPoint, comfortIndex, uptime);
     } else {
       DBG_PRINTLN("No valid sensor data, skipping send");
     }
