@@ -10,6 +10,8 @@ extern bool mqttConnected;
 
 extern unsigned long lastMQTTReconnect;
 extern const unsigned long MQTT_RECONNECT_INTERVAL;
+extern unsigned long lastStatusHeartbeat;
+extern const unsigned long STATUS_HEARTBEAT_INTERVAL;
 extern bool discoveryPublished;
 extern bool pendingDataSend;
 extern bool firstDataSent;
@@ -68,7 +70,8 @@ inline void createDeviceInfo(char* buffer, size_t len) {
     "\"identifiers\":[\"ikea_air_monitor_%s\"],"
     "\"name\":\"%s\","
     "\"model\":\"IKEA Air Monitor\","
-    "\"manufacturer\":\"DIY\""
+    "\"manufacturer\":\"DIY\","
+    "\"sw_version\":\"1.0\""
     "}",
     deviceUniqueId,
     deviceName
@@ -78,7 +81,9 @@ inline void createDeviceInfo(char* buffer, size_t len) {
 // Publish Home Assistant Discovery configuration for a sensor
 inline void publishDiscoverySensor(const char* sensorName, const char* sensorId, 
                                    const char* unit, const char* deviceClass, 
-                                   const char* valueTemplate) {
+                                   const char* valueTemplate, 
+                                   const char* stateClass = nullptr,
+                                   const char* icon = nullptr) {
   if (!mqttClient.connected()) {
     DBG_PRINTLN("MQTT not connected, cannot publish discovery");
     return;
@@ -149,6 +154,28 @@ inline void publishDiscoverySensor(const char* sensorName, const char* sensorId,
     }
   }
   
+  // Add state_class if provided (for statistical sensors like uptime)
+  if (stateClass && strlen(stateClass) > 0) {
+    int newLen = snprintf(payload + len, sizeof(payload) - len, ",\"state_class\":\"%s\"", stateClass);
+    if (newLen > 0 && len + newLen < (int)sizeof(payload)) {
+      len += newLen;
+    }
+  }
+  
+  // Add icon if provided
+  if (icon && strlen(icon) > 0) {
+    int newLen = snprintf(payload + len, sizeof(payload) - len, ",\"icon\":\"%s\"", icon);
+    if (newLen > 0 && len + newLen < (int)sizeof(payload)) {
+      len += newLen;
+    }
+  }
+  
+  // Add expire_after for better offline detection (120 seconds = 2x heartbeat interval)
+  int newLen = snprintf(payload + len, sizeof(payload) - len, ",\"expire_after\":120");
+  if (newLen > 0 && len + newLen < (int)sizeof(payload)) {
+    len += newLen;
+  }
+  
   // Close JSON
   if (len + 2 < (int)sizeof(payload)) {
     int newLen = snprintf(payload + len, sizeof(payload) - len, "}");
@@ -198,31 +225,31 @@ inline void publishDiscovery() {
   DBG_PRINTLN("Publishing Home Assistant discovery configuration...");
   
   // PM2.5 sensor
-  publishDiscoverySensor("PM2.5", "pm25", "µg/m³", "pm25", "pm25");
+  publishDiscoverySensor("PM2.5", "pm25", "µg/m³", "pm25", "pm25", "measurement", "mdi:air-filter");
   
   // Temperature sensor
-  publishDiscoverySensor("Temperature", "temperature", "°C", "temperature", "temperature");
+  publishDiscoverySensor("Temperature", "temperature", "°C", "temperature", "temperature", "measurement", "mdi:thermometer");
   
   // Humidity sensor
-  publishDiscoverySensor("Humidity", "humidity", "%", "humidity", "humidity");
+  publishDiscoverySensor("Humidity", "humidity", "%", "humidity", "humidity", "measurement", "mdi:water-percent");
   
   // Pressure sensor
-  publishDiscoverySensor("Pressure", "pressure", "hPa", "pressure", "pressure");
+  publishDiscoverySensor("Pressure", "pressure", "hPa", "pressure", "pressure", "measurement", "mdi:gauge");
   
   // AQI sensor
-  publishDiscoverySensor("AQI", "aqi", "", "aqi", "aqi");
+  publishDiscoverySensor("AQI", "aqi", "", "aqi", "aqi", "measurement", "mdi:air-purifier");
   
   // AQI Category sensor
-  publishDiscoverySensor("AQI Category", "aqi_category", "", "", "aqi_category");
+  publishDiscoverySensor("AQI Category", "aqi_category", "", "", "aqi_category", nullptr, "mdi:signal");
   
   // Dew Point sensor
-  publishDiscoverySensor("Dew Point", "dew_point", "°C", "temperature", "dew_point");
+  publishDiscoverySensor("Dew Point", "dew_point", "°C", "temperature", "dew_point", "measurement", "mdi:water-thermometer");
   
   // Comfort Index sensor
-  publishDiscoverySensor("Comfort Index", "comfort_index", "", "", "comfort_index");
+  publishDiscoverySensor("Comfort Index", "comfort_index", "", "", "comfort_index", "measurement", "mdi:emoticon-happy");
   
-  // Uptime sensor
-  publishDiscoverySensor("Uptime", "uptime", "s", "duration", "uptime");
+  // Uptime sensor (total_increasing for statistics)
+  publishDiscoverySensor("Uptime", "uptime", "s", "duration", "uptime", "total_increasing", "mdi:timer-outline");
   
   discoveryPublished = true;
   DBG_PRINTLN("Home Assistant discovery configuration published");
@@ -431,6 +458,11 @@ inline bool connectMQTT() {
   char clientId[80];
   snprintf(clientId, sizeof(clientId), "ikea_air_monitor_%s", deviceUniqueId);
   
+  // Prepare Last Will Testament (LWT) - sends "offline" if connection is lost unexpectedly
+  char willTopic[96];
+  snprintf(willTopic, sizeof(willTopic), "tele/%s/status", baseTopic);
+  const char* willMessage = "offline";
+  
   DBG_PRINT("Connecting to MQTT broker ");
   DBG_PRINT(config.mqttHost);
   DBG_PRINT(":");
@@ -445,9 +477,12 @@ inline bool connectMQTT() {
   
   while (!connected && (millis() - connectStart < CONNECT_TIMEOUT)) {
     if (config.mqttUser[0] != '\0') {
-      connected = mqttClient.connect(clientId, config.mqttUser, config.mqttPassword);
+      // Connect with LWT: willTopic, willQoS=1, willRetain=true, willMessage
+      connected = mqttClient.connect(clientId, config.mqttUser, config.mqttPassword, 
+                                     willTopic, 1, true, willMessage);
     } else {
-      connected = mqttClient.connect(clientId);
+      // Connect with LWT but without credentials
+      connected = mqttClient.connect(clientId, willTopic, 1, true, willMessage);
     }
     
     if (!connected) {
@@ -479,6 +514,8 @@ inline bool connectMQTT() {
     DBG_PRINTLN(config.mqttPort);
     
     mqttConnected = true;
+    // Initialize heartbeat timer
+    lastStatusHeartbeat = millis();
     publishAvailability(true);
     
     // Reset discovery flag and publish discovery after connection
@@ -509,9 +546,24 @@ inline bool initMQTT() {
 
 // MQTT loop - call regularly
 inline void loopMQTT() {
+  unsigned long now = millis();
+  
   if (!mqttClient.connected()) {
-    mqttConnected = false;
-    unsigned long now = millis();
+    // Connection lost - try to send offline status if we were previously connected
+    if (mqttConnected) {
+      // Try to send offline status before connection is fully lost
+      // Note: This might not always succeed if connection is already broken
+      DBG_PRINTLN("MQTT connection lost, attempting to send offline status");
+      if (mqttTopicsInitialized) {
+        // Try to publish offline status directly (might fail if connection is broken)
+        char statusTopic[96];
+        snprintf(statusTopic, sizeof(statusTopic), "tele/%s/status", baseTopic);
+        mqttClient.publish(statusTopic, "offline", true); // retain = true
+      }
+      mqttConnected = false;
+    }
+    
+    // Try to reconnect
     if (now - lastMQTTReconnect >= MQTT_RECONNECT_INTERVAL) {
       lastMQTTReconnect = now;
       if (WiFi.status() == WL_CONNECTED) {
@@ -530,8 +582,17 @@ inline void loopMQTT() {
         publishSensorData(lastPM25, lastTemp, lastHumidity, lastPressure, 
                          lastAQI, lastAQICategory, lastDewPoint, lastComfortIndex, lastUptime);
       }
+      
+      // Reset heartbeat timer on reconnect
+      lastStatusHeartbeat = now;
     }
     mqttConnected = true;
     mqttClient.loop();
+    
+    // Send periodic "online" heartbeat
+    if (now - lastStatusHeartbeat >= STATUS_HEARTBEAT_INTERVAL) {
+      lastStatusHeartbeat = now;
+      publishAvailability(true);
+    }
   }
 }

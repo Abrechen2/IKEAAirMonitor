@@ -26,6 +26,8 @@ unsigned long uptimeMillis = 0;
 // MQTT state variables (moved from MQTTManager.h to avoid ODR violations)
 unsigned long lastMQTTReconnect = 0;
 const unsigned long MQTT_RECONNECT_INTERVAL = 5000;
+unsigned long lastStatusHeartbeat = 0;
+const unsigned long STATUS_HEARTBEAT_INTERVAL = 60000; // 60 seconds
 bool discoveryPublished = false;
 bool pendingDataSend = false;
 bool firstDataSent = false;
